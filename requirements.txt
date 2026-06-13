@@ -1,0 +1,12 @@
+fastmcp
+httpx
+ipykernel
+langchain
+langchain-core
+langchain-mcp-adapters
+langchain-openai
+langgraph-supervisor
+langgraph-checkpointer-
+langgraph
+python-dotenv
+sqlalchemy
