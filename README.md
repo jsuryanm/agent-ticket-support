@@ -1,26 +1,32 @@
-# UDA-Hub: Universal Decision Agent for Customer Support Automation
-
-## Project Scenario
+# Project Scenario
 
 You’ve joined a fast-growing AI startup building the next frontier in customer support automation.
 
-Your team is responsible for building **UDA-Hub**, a Universal Decision Agent designed to plug into existing customer support systems such as **Zendesk**, **Intercom**, **Freshdesk**, and internal CRMs to intelligently resolve tickets.
+Your team is responsible for building **UDA-Hub**, a **Universal Decision Agent** designed to plug into existing customer support systems (Zendesk, Intercom, Freshdesk, internal CRMs) and intelligently resolve tickets. But this isn’t just another FAQ bot.
 
-But this isn’t just another FAQ bot.
+## The Goal
 
-### The Goal
+Build an **agentic system** that:
 
-Build an agentic system that reads, reasons, routes, and resolves, acting as the operational brain behind support teams.
+- Reads customer requests
+- Reasons about the problem
+- Routes tickets intelligently
+- Resolves issues when possible
+- Escalates complex cases when necessary
 
-Your solution should be capable of:
+The objective is to create an operational brain behind customer support teams.
 
-* Understanding customer tickets across multiple channels
-* Deciding which agent or tool should handle each case
-* Retrieving or inferring answers when possible
-* Escalating or summarizing issues when necessary
-* Learning from interactions by updating long-term memory
+### Core Responsibilities
 
-The agent should not only automate support tasks—it should decide **how to automate them**.
+Your system should be able to:
+
+- Understand customer tickets across multiple channels
+- Decide which agent or tool should handle each case
+- Retrieve or infer answers when possible
+- Escalate or summarize issues when necessary
+- Learn from interactions by updating long-term memory
+
+> Your agent should not only automate—it should decide how to automate.
 
 ---
 
@@ -34,30 +40,31 @@ In this project, you will develop **UDA-Hub**, an intelligent multi-agent decisi
 
 Design and orchestrate specialized agents, such as:
 
-* Supervisor Agent
-* Classifier Agent
-* Resolver Agent
-* Escalation Agent
-* Additional task-specific agents as needed
+- Supervisor Agent
+- Classifier Agent
+- Resolver Agent
+- Escalation Agent
+- Memory Agent
+- Tool Agent
 
 ### 2. Input Handling
 
-Accept incoming support tickets containing:
+Accept incoming support tickets in natural language along with metadata, such as:
 
-* Natural language descriptions
-* Platform metadata
-* Urgency level
-* Ticket history
-* Additional contextual information
+- Platform (Zendesk, Intercom, Freshdesk, CRM)
+- Urgency level
+- Customer information
+- Conversation history
+- Ticket category
 
 ### 3. Decision Routing and Resolution
 
 The system should:
 
-* Route tickets to the appropriate agent based on classification
-* Retrieve relevant knowledge using RAG (Retrieval-Augmented Generation) when necessary
-* Resolve issues automatically when confidence is high
-* Escalate tickets when human intervention is required
+- Route tickets to the appropriate agent based on classification
+- Retrieve relevant information using RAG (Retrieval-Augmented Generation) when needed
+- Resolve issues automatically when confidence is high
+- Escalate tickets when confidence is low or human intervention is required
 
 ### 4. Memory Integration
 
@@ -65,16 +72,20 @@ The system should support both short-term and long-term memory.
 
 #### Short-Term Memory
 
-Used to maintain context during execution and keep conversations coherent within the same session.
+Used to:
+
+- Maintain state throughout execution
+- Preserve context during a customer session
+- Support multi-step reasoning
 
 #### Long-Term Memory
 
-Used to store and recall:
+Used to:
 
-* User preferences
-* Historical conversations
-* Previous resolutions
-* Relevant customer information
+- Store customer preferences
+- Save previous resolutions
+- Recall historical interactions
+- Improve future decision-making
 
 ---
 
@@ -82,32 +93,63 @@ Used to store and recall:
 
 ## Inputs
 
-The system should support the following inputs:
+### Incoming Support Ticket
 
-* Incoming support tickets (text + metadata)
-* Internal knowledge base (FAQs, documentation, previous tickets)
-* Optional internal tools (e.g., refund processing)
-* Memory store for prior conversations and resolutions
+- Ticket text
+- Customer metadata
+- Channel/platform information
+
+### Internal Knowledge Base
+
+- FAQs
+- Documentation
+- Previous support tickets
+- Resolution records
+
+### Internal Tools (Optional)
+
+Examples:
+
+- Refund processing tool
+- Account management tool
+- Subscription management tool
+- CRM integrations
+
+### Memory Store
+
+Contains:
+
+- Prior conversations
+- Historical resolutions
+- Customer preferences
+- Agent-generated insights
+
+---
 
 ## Deliverables
 
-A **LangGraph-powered multi-agent system** that:
+Develop a **LangGraph-powered multi-agent system** that can:
 
-* Understands customer support tickets
-* Routes requests to the correct agent and tools
-* Resolves or escalates issues based on decision logic
-* Uses memory appropriately throughout the workflow
+### Understand Tickets
 
-### Expected Outcomes
+- Analyze customer intent
+- Extract relevant information
+- Determine urgency and category
 
-The final system should demonstrate:
+### Route to the Correct Agent
 
-1. Intelligent ticket understanding
-2. Dynamic agent routing
-3. Knowledge retrieval through RAG
-4. Automated resolution capabilities
-5. Escalation handling
-6. Stateful execution with memory
-7. Long-term learning from prior interactions
+- Classify requests
+- Select the appropriate specialized agent
+- Invoke relevant tools when necessary
 
-UDA-Hub should function as a centralized decision-making engine that enhances customer support operations through autonomous reasoning, orchestration, and continuous learning.
+### Resolve or Escalate
+
+- Automatically resolve issues when confidence is sufficient
+- Escalate complex cases to human agents
+- Generate concise summaries for escalations
+
+### Use Memory Appropriately
+
+- Maintain short-term conversational context
+- Store and retrieve long-term customer information
+- Learn from past interactions to improve future performance

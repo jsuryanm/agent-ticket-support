@@ -5,8 +5,12 @@ langchain
 langchain-core
 langchain-mcp-adapters
 langchain-openai
+langchain-groq 
+langchain-huggingface
+sentence-transformers 
+torch
 langgraph-supervisor
-langgraph-checkpointer-
 langgraph
 python-dotenv
 sqlalchemy
+pydantic-settings

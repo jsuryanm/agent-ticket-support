@@ -1,113 +1,272 @@
-# UDA-Hub: Universal Decision Agent for Customer Support Automation
+# Project Instructions
 
-## Project Scenario
+Your starter folder looks like the following structure:
 
-You’ve joined a fast-growing AI startup building the next frontier in customer support automation.
-
-Your team is responsible for building **UDA-Hub**, a Universal Decision Agent designed to plug into existing customer support systems such as **Zendesk**, **Intercom**, **Freshdesk**, and internal CRMs to intelligently resolve tickets.
-
-But this isn’t just another FAQ bot.
-
-### The Goal
-
-Build an agentic system that reads, reasons, routes, and resolves, acting as the operational brain behind support teams.
-
-Your solution should be capable of:
-
-* Understanding customer tickets across multiple channels
-* Deciding which agent or tool should handle each case
-* Retrieving or inferring answers when possible
-* Escalating or summarizing issues when necessary
-* Learning from interactions by updating long-term memory
-
-The agent should not only automate support tasks—it should decide **how to automate them**.
+```text
+starter/
+├── agentic/
+│   ├── agents/
+│   ├── design/
+│   ├── tools/
+│   └── workflow.py
+├── data/
+│   ├── core/
+│   ├── external/
+│   └── models/
+├── .env
+├── 01_external_db_setup.ipynb
+├── 02_core_db_setup.ipynb
+├── 03_agentic_app.ipynb
+└── utils.py
+```
 
 ---
 
-# Project Introduction
+# Design
 
-In this project, you will develop **UDA-Hub**, an intelligent multi-agent decision suite capable of resolving customer support tickets across multiple platforms.
+Start by designing the solution. Your implementation will follow it.
 
-## Key Capabilities
+Place all the documentation and diagrams about the design of your agentic system inside:
 
-### 1. Multi-Agent Architecture with LangGraph
-
-Design and orchestrate specialized agents, such as:
-
-* Supervisor Agent
-* Classifier Agent
-* Resolver Agent
-* Escalation Agent
-* Additional task-specific agents as needed
-
-### 2. Input Handling
-
-Accept incoming support tickets containing:
-
-* Natural language descriptions
-* Platform metadata
-* Urgency level
-* Ticket history
-* Additional contextual information
-
-### 3. Decision Routing and Resolution
-
-The system should:
-
-* Route tickets to the appropriate agent based on classification
-* Retrieve relevant knowledge using RAG (Retrieval-Augmented Generation) when necessary
-* Resolve issues automatically when confidence is high
-* Escalate tickets when human intervention is required
-
-### 4. Memory Integration
-
-The system should support both short-term and long-term memory.
-
-#### Short-Term Memory
-
-Used to maintain context during execution and keep conversations coherent within the same session.
-
-#### Long-Term Memory
-
-Used to store and recall:
-
-* User preferences
-* Historical conversations
-* Previous resolutions
-* Relevant customer information
+```text
+agentic/design
+```
 
 ---
 
-# Project Summary
+# Setup
 
-## Inputs
+## External Database Setup
 
-The system should support the following inputs:
+Run:
 
-* Incoming support tickets (text + metadata)
-* Internal knowledge base (FAQs, documentation, previous tickets)
-* Optional internal tools (e.g., refund processing)
-* Memory store for prior conversations and resolutions
+```text
+01_external_db_setup.ipynb
+```
 
-## Deliverables
+This notebook contains all the data related to the account **Cultpass**, which is the first customer that has purchased **UDA-Hub**.
 
-A **LangGraph-powered multi-agent system** that:
+## Core Database Setup
 
-* Understands customer support tickets
-* Routes requests to the correct agent and tools
-* Resolves or escalates issues based on decision logic
-* Uses memory appropriately throughout the workflow
+Run:
 
-### Expected Outcomes
+```text
+02_core_db_setup.ipynb
+```
 
-The final system should demonstrate:
+This notebook contains all the data related to the **UDA-Hub** application, including files received from Cultpass such as:
 
-1. Intelligent ticket understanding
-2. Dynamic agent routing
-3. Knowledge retrieval through RAG
-4. Automated resolution capabilities
-5. Escalation handling
-6. Stateful execution with memory
-7. Long-term learning from prior interactions
+```text
+cultpass_articles.jsonl
+```
 
-UDA-Hub should function as a centralized decision-making engine that enhances customer support operations through autonomous reasoning, orchestration, and continuous learning.
+### Dataset Expansion Requirement
+
+You need to expand **cultpass_articles** from **4 articles** to **at least 14 articles**.
+
+Make sure the additional articles cover diverse topics that can support your agentic system.
+
+---
+
+# Agentic Workflow
+
+## Agents and Tools
+
+Develop your agents inside:
+
+```text
+agentic/agents
+```
+
+Develop your tools inside:
+
+```text
+agentic/tools
+```
+
+This will help maintain modularity and separation of concerns.
+
+---
+
+## Workflow Orchestration
+
+Develop your workflow orchestration inside:
+
+```text
+workflow.py
+```
+
+There is already a sample implementation provided.
+
+**Do not use it.**
+
+Create the graph entirely from scratch and do **not** use the prebuilt workflow.
+
+---
+
+## Database Tooling
+
+When developing tools that abstract database operations for either:
+
+- Retrieval
+- Actions
+
+be mindful of relative and absolute paths.
+
+It is strongly recommended to use something similar to **MCP servers** for tool implementations.
+
+---
+
+## RAG Documentation
+
+If you use **Retrieval-Augmented Generation (RAG)** for retrieval:
+
+- Document the retrieval architecture.
+- Explain how documents are indexed.
+- Explain how retrieval works.
+- Explain how retrieved context is incorporated into agent decisions.
+
+---
+
+## Memory Requirements
+
+### Short-Term Memory
+
+For session-level memory, you can use:
+
+```python
+thread_id
+```
+
+### Long-Term Memory
+
+You are free to implement long-term memory using:
+
+- Semantic search
+- Vector databases
+- Embedding-based retrieval
+- Other suitable approaches
+
+---
+
+# Run
+
+A helper function already exists inside:
+
+```text
+utils.py
+```
+
+```python
+chat_interface()
+```
+
+This is currently implemented as a simple:
+
+```python
+while True:
+    ...
+```
+
+loop.
+
+Feel free to improve it.
+
+---
+
+## Application Entry Point
+
+You are **not required** to use:
+
+```text
+03_agentic_app.ipynb
+```
+
+You may instead develop the application as a Python module.
+
+If so, name it:
+
+```text
+03_agentic_app.py
+```
+
+and clearly document how to run the project.
+
+---
+
+## Testing
+
+You **must create test cases** for the project.
+
+Your implementation should include tests that validate:
+
+- Agent routing
+- Classification accuracy
+- Tool execution
+- Memory retrieval
+- Escalation logic
+- End-to-end workflow execution
+
+---
+
+# Submission Instructions
+
+You are receiving starter code, but your submission must contain all artifacts under:
+
+```text
+solution/
+```
+
+The evaluation team will **not** inspect:
+
+```text
+starter/
+```
+
+If you reuse starter code, make sure it is copied into:
+
+```text
+solution/
+```
+
+before submission.
+
+---
+
+## Environment Documentation
+
+If you install any packages:
+
+- Include package names and versions in the documentation.
+- Provide a `requirements.txt` file.
+- Provide the Python version used for development (if developing locally).
+
+---
+
+# DON'Ts
+
+### Do Not
+
+❌ Import or reference folders outside:
+
+```text
+solution/
+```
+
+❌ Share your:
+
+```text
+.env
+```
+
+file
+
+❌ Submit large:
+
+```text
+.db
+```
+
+files
+
+❌ Submit only the notebooks without the accompanying project artifacts
