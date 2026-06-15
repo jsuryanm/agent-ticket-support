@@ -71,7 +71,7 @@ The first two scripts are offline; `build_index.py` calls the embeddings API.
 ## Run
 
 ```bash
-python soltion/app.py          # optional: pass a ticket id, e.g. `python app.py`
+python solution/app.py          # optional: pass a ticket id, e.g. `python app.py`
 ```
 
 You'll get an interactive prompt:
