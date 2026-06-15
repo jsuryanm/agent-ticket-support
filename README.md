@@ -24,7 +24,7 @@ See `agentic/design/architecture.md` and `agentic/design/rag.md` for the design.
 
 ```
 solution/
-├── 03_agentic_app.py          # entry point (async chat loop)
+├── app.py          # entry point (async chat loop)
 ├── requirements.txt
 ├── .env.example
 ├── utils.py                   # db helpers + async chat interface
@@ -43,18 +43,17 @@ solution/
 │   ├── core/                  # generated udahub.db
 │   └── index/                 # generated Chroma store
 ├── scripts/
-│   ├── 01_external_db_setup.py
-│   ├── 02_core_db_setup.py
+│   ├── 01_external_db_setup.ipynb
+│   ├── 02_core_db_setup.ipynb
 │   └── build_index.py
-└── tests/                     # offline test suite (25 tests)
+└── tests/                     # offline test suite
 ```
 
 ## Setup
 
 ```bash
 cd solution
-python -m venv .venv && source .venv/bin/activate      # Python 3.11+ (tested on 3.12)
-pip install -r requirements.txt
+uv synv && source .venv/bin/activate      # Python 3.11+ (tested on 3.12)
 
 cp .env.example .env            # then add your OPENAI_API_KEY
 ```
