@@ -1,6 +1,6 @@
-def main():
-    print("Hello from project-4!")
+from solution.config import settings
+config = settings()
 
-
-if __name__ == "__main__":
-    main()
+print(config.DATA_DIR)
+print(config.CORE_DIR)
+print(config.UDAHUB_DB)

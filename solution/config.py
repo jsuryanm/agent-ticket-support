@@ -1,24 +1,20 @@
-from pathlib import Path 
-from pydantic_settings import BaseSettings,SettingsConfigDict
+from pathlib import Path
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 
 from functools import lru_cache
 
-SOLUTION_ROOT: Path = Path(__file__).resolve().parents[1]
-
-DATA_DIR: Path = SOLUTION_ROOT / "data"
-EXTERNAL_DIR: Path = DATA_DIR / "external"
-CORE_DIR: Path = DATA_DIR / "core"
-INDEX_DIR: Path = DATA_DIR / "index"  # Chroma persistent store lives here
-
-CULTPASS_DB: Path = EXTERNAL_DIR / "cultpass.db"
-UDAHUB_DB: Path = CORE_DIR / "udahub.db"
+PROJECT_ROOT: Path = Path(__file__).resolve().parents[1]
+SOLUTION_ROOT: Path = Path(__file__).resolve().parent
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env",
                                       env_file_encoding="utf-8",
                                       case_sensitive=False)
+
+    PROJECT_ROOT: Path = PROJECT_ROOT
+    SOLUTION_ROOT: Path = SOLUTION_ROOT
     
     openai_api_key: str = Field(...,description="openai api key")
     openai_model: str = Field(default="gpt-4o-mini",description="openai llm model")
@@ -37,11 +33,22 @@ class Settings(BaseSettings):
     knowledge_base: str = "cultpass_knowledge"
     memory_collection: str = "udahub_memory"
 
+    RAG_TOP_K: int = 3
+    MEMORY_TOP_K: int = 3
+
     TOOLS_DIR: Path = SOLUTION_ROOT / "agentic" / "tools"
     DB_SERVER_PATH: Path = TOOLS_DIR / "db_server.py"
     RAG_SERVER_PATH: Path = TOOLS_DIR / "rag_server.py"
 
     ACCOUNT_ID: str = "cultpass"
+    DATA_DIR: Path = SOLUTION_ROOT / "data"
+    EXTERNAL_DIR: Path = DATA_DIR / "external"
+    CORE_DIR: Path = DATA_DIR / "core"
+    INDEX_DIR: Path = DATA_DIR / "index"  # Chroma persistent store lives here
+
+    CULTPASS_DB: Path = EXTERNAL_DIR / "cultpass.db"
+    UDAHUB_DB: Path = CORE_DIR / "udahub.db"
+
 
 @lru_cache(maxsize=1)
 def settings() -> Settings:

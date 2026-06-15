@@ -1,155 +1,116 @@
-# Project Scenario
+# UDA-Hub — Multi-Agent Customer Support (CultPass)
 
-You’ve joined a fast-growing AI startup building the next frontier in customer support automation.
+A from-scratch **LangGraph** multi-agent system that triages and resolves
+customer-support tickets for a fictional client, **CultPass**. It classifies an
+incoming message, then routes it to a specialised agent: answer from the
+knowledge base (RAG), act on the account via tools, capture a preference, or
+hand off to a human — finishing by persisting the outcome and learning from it.
 
-Your team is responsible for building **UDA-Hub**, a **Universal Decision Agent** designed to plug into existing customer support systems (Zendesk, Intercom, Freshdesk, internal CRMs) and intelligently resolve tickets. But this isn’t just another FAQ bot.
+```
+START → supervisor → classifier → {resolver | tool_agent | escalation | memory} → finalize → END
+```
 
-## The Goal
+See `agentic/design/architecture.md` and `agentic/design/rag.md` for the design.
 
-Build an **agentic system** that:
+## Stack
 
-- Reads customer requests
-- Reasons about the problem
-- Routes tickets intelligently
-- Resolves issues when possible
-- Escalates complex cases when necessary
+- **Orchestration:** LangGraph `StateGraph` built by hand; the Tool Agent reuses the prebuilt ReAct loop (`langchain.agents.create_agent`)
+- **LLM:** OpenAI `gpt-4o-mini` via `langchain-openai`
+- **Tools:** two **FastMCP** servers consumed through `langchain-mcp-adapters`
+- **RAG + long-term memory:** persistent **Chroma** + OpenAI embeddings
+- **Short-term memory:** LangGraph checkpointer keyed by `thread_id`
 
-The objective is to create an operational brain behind customer support teams.
+## Project layout
 
-### Core Responsibilities
+```
+solution/
+├── 03_agentic_app.py          # entry point (async chat loop)
+├── requirements.txt
+├── .env.example
+├── utils.py                   # db helpers + async chat interface
+├── agentic/
+│   ├── config.py              # paths, models, knobs (absolute paths)
+│   ├── state.py               # TicketState
+│   ├── llm.py                 # ChatOpenAI factory
+│   ├── workflow.py            # builds the StateGraph from scratch
+│   ├── agents/                # supervisor, classifier, resolver,
+│   │                          #   tool_agent, escalation, memory
+│   ├── tools/                 # db_ops/rag_ops (pure) + FastMCP servers + client
+│   └── design/                # architecture.md, rag.md
+├── data/
+│   ├── models/                # SQLAlchemy models (cultpass, udahub)
+│   ├── external/              # *.jsonl datasets (+ generated cultpass.db)
+│   ├── core/                  # generated udahub.db
+│   └── index/                 # generated Chroma store
+├── scripts/
+│   ├── 01_external_db_setup.py
+│   ├── 02_core_db_setup.py
+│   └── build_index.py
+└── tests/                     # offline test suite (25 tests)
+```
 
-Your system should be able to:
+## Setup
 
-- Understand customer tickets across multiple channels
-- Decide which agent or tool should handle each case
-- Retrieve or infer answers when possible
-- Escalate or summarize issues when necessary
-- Learn from interactions by updating long-term memory
+```bash
+cd solution
+python -m venv .venv && source .venv/bin/activate      # Python 3.11+ (tested on 3.12)
+pip install -r requirements.txt
 
-> Your agent should not only automate—it should decide how to automate.
+cp .env.example .env            # then add your OPENAI_API_KEY
+```
 
----
+## Build the data
 
-# Project Introduction
+```bash
+python scripts/01_external_db_setup.py   # -> data/external/cultpass.db
+python scripts/02_core_db_setup.py       # -> data/core/udahub.db (>=14 KB articles)
+python scripts/build_index.py            # -> data/index/ (needs OPENAI_API_KEY)
+```
 
-In this project, you will develop **UDA-Hub**, an intelligent multi-agent decision suite capable of resolving customer support tickets across multiple platforms.
+The first two scripts are offline; `build_index.py` calls the embeddings API.
 
-## Key Capabilities
+## Run
 
-### 1. Multi-Agent Architecture with LangGraph
+```bash
+python soltion/app.py          # optional: pass a ticket id, e.g. `python app.py`
+```
 
-Design and orchestrate specialized agents, such as:
+You'll get an interactive prompt:
 
-- Supervisor Agent
-- Classifier Agent
-- Resolver Agent
-- Escalation Agent
-- Memory Agent
-- Tool Agent
+```
+User: how do I reserve an event?
+Assistant: You can reserve an experience by opening the CultPass app ...
+User: q
+```
 
-### 2. Input Handling
+The `ticket_id` is used as the LangGraph `thread_id`, so a session keeps
+short-term memory across turns.
 
-Accept incoming support tickets in natural language along with metadata, such as:
+> **Why async?** MCP-over-stdio tools are asynchronous, so the graph is driven
+> with `ainvoke` and the chat loop is async (`utils.async_chat_interface`). The
+> starter's synchronous `chat_interface` cannot call async MCP tools.
 
-- Platform (Zendesk, Intercom, Freshdesk, CRM)
-- Urgency level
-- Customer information
-- Conversation history
-- Ticket category
+## Tests
 
-### 3. Decision Routing and Resolution
+The suite runs fully offline (no API key, no network, no subprocesses) by
+injecting fake LLMs/tools/vector stores into the same factories the app uses:
 
-The system should:
+```bash
+pytest -q          
+```
 
-- Route tickets to the appropriate agent based on classification
-- Retrieve relevant information using RAG (Retrieval-Augmented Generation) when needed
-- Resolve issues automatically when confidence is high
-- Escalate tickets when confidence is low or human intervention is required
+Coverage: DB operations, RAG/memory operations, the classifier and its router,
+the resolver (resolve vs. escalate), and end-to-end graph routing through the
+resolver / tool / escalation paths plus short-term-memory persistence.
 
-### 4. Memory Integration
+## Key decisions
 
-The system should support both short-term and long-term memory.
-
-#### Short-Term Memory
-
-Used to:
-
-- Maintain state throughout execution
-- Preserve context during a customer session
-- Support multi-step reasoning
-
-#### Long-Term Memory
-
-Used to:
-
-- Store customer preferences
-- Save previous resolutions
-- Recall historical interactions
-- Improve future decision-making
-
----
-
-# Project Summary
-
-## Inputs
-
-### Incoming Support Ticket
-
-- Ticket text
-- Customer metadata
-- Channel/platform information
-
-### Internal Knowledge Base
-
-- FAQs
-- Documentation
-- Previous support tickets
-- Resolution records
-
-### Internal Tools (Optional)
-
-Examples:
-
-- Refund processing tool
-- Account management tool
-- Subscription management tool
-- CRM integrations
-
-### Memory Store
-
-Contains:
-
-- Prior conversations
-- Historical resolutions
-- Customer preferences
-- Agent-generated insights
-
----
-
-## Deliverables
-
-Develop a **LangGraph-powered multi-agent system** that can:
-
-### Understand Tickets
-
-- Analyze customer intent
-- Extract relevant information
-- Determine urgency and category
-
-### Route to the Correct Agent
-
-- Classify requests
-- Select the appropriate specialized agent
-- Invoke relevant tools when necessary
-
-### Resolve or Escalate
-
-- Automatically resolve issues when confidence is sufficient
-- Escalate complex cases to human agents
-- Generate concise summaries for escalations
-
-### Use Memory Appropriately
-
-- Maintain short-term conversational context
-- Store and retrieve long-term customer information
-- Learn from past interactions to improve future performance
+- **MCP as recommended**, with all real logic kept in pure modules
+  (`db_ops`, `rag_ops`) so the FastMCP servers stay thin and everything is
+  testable without MCP.
+- **Supervisor split** into `supervisor` (entry) + `finalize` (close) to keep
+  nodes single-purpose and avoid self-loops.
+- **Safety first:** refunds never auto-approve; blocked accounts, complaints,
+  and low-confidence reads escalate to a human.
+- **Dependency injection** in `build_orchestrator(...)` is the single seam that
+  makes the graph testable and the provider swappable.
