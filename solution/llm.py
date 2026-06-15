@@ -8,8 +8,8 @@ from langchain_openai import ChatOpenAI
 config = settings()
 
 @lru_cache(maxsize=1)
-def get_llm() -> ChatGroq:
-    """Returns cached ChatGroq instance"""
-    return ChatGroq(model=config.groq_model,
-                    api_key=config.groq_api_key,
-                    temperature=config.llm_temp) 
+def get_llm() -> ChatOpenAI:
+    """Returns cached ChatOpenAI instance"""
+    return ChatOpenAI(model=config.openai_model,
+                      api_key=config.openai_api_key,
+                      temperature=config.llm_temp) 

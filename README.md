@@ -62,8 +62,8 @@ cp .env.example .env            # then add your OPENAI_API_KEY
 ## Build the data
 
 ```bash
-python scripts/01_external_db_setup.py   # -> data/external/cultpass.db
-python scripts/02_core_db_setup.py       # -> data/core/udahub.db (>=14 KB articles)
+run 01_external_db_setup.py   # -> data/external/cultpass.db
+run 02_core_db_setup.py       # -> data/core/udahub.db (>=14 KB articles)
 python scripts/build_index.py            # -> data/index/ (needs OPENAI_API_KEY)
 ```
 

@@ -7,8 +7,9 @@ from langchain_openai import OpenAIEmbeddings
 
 config = settings()
 
-def _embeddings() -> HuggingFaceEmbeddings:
-    return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+def _embeddings() -> OpenAIEmbeddings:
+    return OpenAIEmbeddings(model=config.openai_embed_model,
+                            api_key=config.openai_api_key)
 
 def get_vectorstore(collection_name: str) -> Chroma: 
     return Chroma(collection_name=collection_name,
