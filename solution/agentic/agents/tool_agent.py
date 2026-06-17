@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Callable
+from typing import Any, Callable
 
 from langchain.agents import create_agent
 from langchain_core.language_models import BaseChatModel
@@ -34,17 +34,51 @@ def _input_messages(state: TicketState) -> list:
     return msgs
 
 
+def _content_text(content: Any) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for item in content:
+            if isinstance(item, dict) and "text" in item:
+                parts.append(str(item["text"]))
+            else:
+                parts.append(str(item))
+        return "\n".join(parts)
+    return str(content)
+
+
+def _parse_tool_content(content: Any) -> Any:
+    text = _content_text(content)
+    try:
+        return json.loads(text)
+    except (ValueError, TypeError):
+        return text
+
+
 def _needs_human(tool_message) -> bool:
     """True if an observed tool result requires a human (blocked / refund approval)."""
     content = getattr(tool_message, "content", "") or ""
-    try:
-        data = json.loads(content)
-        if isinstance(data, dict):
-            return bool(data.get("needs_human")) or bool(data.get("is_blocked"))
-    except (ValueError, TypeError):
-        pass
-    low = content.lower()
+    data = _parse_tool_content(content)
+    if isinstance(data, dict):
+        return bool(data.get("needs_human")) or bool(data.get("is_blocked"))
+    low = str(data).lower()
     return '"needs_human": true' in low or '"is_blocked": true' in low
+
+
+def _tool_results(messages: list) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
+    for message in messages:
+        if getattr(message, "type", None) != "tool":
+            continue
+        parsed = _parse_tool_content(getattr(message, "content", "") or "")
+        results.append(
+            {
+                "tool": getattr(message, "name", None) or "tool",
+                "result": parsed,
+            }
+        )
+    return results
 
 
 def make_tool_agent(llm: BaseChatModel, db_tools: list[BaseTool]) -> Callable:
@@ -60,8 +94,13 @@ def make_tool_agent(llm: BaseChatModel, db_tools: list[BaseTool]) -> Callable:
         escalate = any(
             _needs_human(m) for m in out_msgs if getattr(m, "type", None) == "tool"
         )
-        logger.info("Tool agent finished (escalate=%s)", escalate)
-        return {"resolution": resolution, "escalation_required": escalate}
+        tool_results = _tool_results(out_msgs)
+        logger.info("Tool agent finished (tools=%d, escalate=%s)", len(tool_results), escalate)
+        return {
+            "resolution": resolution,
+            "tool_results": tool_results,
+            "escalation_required": escalate,
+        }
 
     return tool_agent_node
 

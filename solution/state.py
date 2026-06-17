@@ -18,6 +18,7 @@ class TicketState(TypedDict,total=False):
      # Retrieval / memory context
     retrieved_docs: list[dict[str, Any]]   # KB snippets used by the resolver
     memory_context: list[str]              # long-term memories about the user
+    tool_results: list[dict[str, Any]]     # DB tool calls/results observed by the tool agent
 
     # Outcome
     resolution: str             # the drafted customer-facing answer

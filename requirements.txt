@@ -5,11 +5,7 @@ langchain
 langchain-core
 langchain-mcp-adapters
 langchain-openai
-langchain-groq 
-langchain-huggingface
 langchain-chroma
-sentence-transformers 
-torch
 langgraph-supervisor
 langgraph
 python-dotenv

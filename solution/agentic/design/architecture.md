@@ -96,7 +96,7 @@ subprocesses, no network.
 
 - **Short-term:** LangGraph checkpointer (`InMemorySaver`) keyed by `thread_id`
   (the ticket id). Each turn appends to the same thread's message history.
-- **Long-term:** a Chroma collection (`udahub_memory`). The Supervisor reads
+- **Long-term:** a Chroma collection (`udahub_memory_openai`). The Supervisor reads
   relevant notes at entry; `finalize` writes a compact outcome note and the
   Memory Agent stores explicit preferences. Notes are scoped per user via a
   metadata filter.
@@ -112,5 +112,6 @@ subprocesses, no network.
 ## 7. Dependency injection
 
 `build_orchestrator(tools, llm=None, checkpointer=None)` injects the LLM and the
-tool dict, so tests can pass fakes and the same builder serves production. This
-is the single seam that makes the whole graph testable offline.
+tool dict, so tests can pass fakes and notebooks can pass in-process tool
+adapters over the same DB/RAG logic. This is the single seam that makes the
+whole graph testable offline.

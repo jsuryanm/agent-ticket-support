@@ -30,7 +30,7 @@ def main() -> None:
 
     store = get_vectorstore(config.knowledge_base)
     store.add_texts(texts=texts, metadatas=metadatas, ids=ids)
-    print(f"✅ Indexed {len(texts)} articles into '{config.knowledge_base}' at {config.INDEX_DIR}")
+    print(f"Indexed {len(texts)} articles into '{config.knowledge_base}' at {config.INDEX_DIR}")
 
 
 if __name__ == "__main__":

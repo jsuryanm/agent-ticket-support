@@ -1,4 +1,6 @@
 import logging 
+import json
+import asyncio
 
 from typing import Callable 
 from langchain_core.messages import AIMessage
@@ -11,6 +13,7 @@ from solution.agentic.tools import db_ops
 
 config = settings()
 logger = logging.getLogger("udahub.supervisor")
+MEMORY_TOOL_TIMEOUT_SECONDS = 15
 
 
 def _memory_key(state: TicketState) -> str:
@@ -21,6 +24,20 @@ def _last_user_text(state: TicketState) -> str:
         if getattr(msg,'type',None) == "human":
             return msg.content 
     return ""
+
+
+def _memory_text(value) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        if "text" in value:
+            return str(value["text"])
+        if "content" in value:
+            return _memory_text(value["content"])
+        return json.dumps(value, default=str)
+    if isinstance(value, list):
+        return "\n".join(_memory_text(item) for item in value)
+    return str(value)
 
 def make_supervisor_entry(memory_search):
     """seeds default and retrieves long term memory for context"""
@@ -34,10 +51,13 @@ def make_supervisor_entry(memory_search):
         key = _memory_key(state)
         query = _last_user_text(state)
         try:
-            raw = await memory_search.ainvoke(
-                {"user_id": key, "query": query, "k": config.MEMORY_TOP_K}
+            raw = await asyncio.wait_for(
+                memory_search.ainvoke(
+                    {"user_id": key, "query": query, "k": config.MEMORY_TOP_K}
+                ),
+                timeout=MEMORY_TOOL_TIMEOUT_SECONDS,
             )
-            memories = coerce_json(raw) or []
+            memories = [_memory_text(memory) for memory in (coerce_json(raw) or [])]
         except Exception as exc:  # memory store may be empty/unavailable -> degrade gracefully
             logger.warning("Memory retrieval failed: %s", exc)
             memories = []

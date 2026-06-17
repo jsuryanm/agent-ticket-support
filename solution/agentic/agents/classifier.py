@@ -74,10 +74,17 @@ def make_classifier(llm: BaseChatModel) -> Callable:
         text = _last_user_text(state)
         result: Classification = await structured.ainvoke([_SYSTEM, HumanMessage(content=text)])
         logger.info("Classified as %s (p=%s, conf=%.2f)", result.category, result.priority, result.confidence)
+        route = _route_for_classification(
+            category=result.category,
+            confidence=result.confidence,
+            escalation_required=result.escalation_required,
+        )
+        logger.info("Classifier routed to %s", route)
         update = {
             "category": result.category,
             "priority": result.priority,
             "confidence": result.confidence,
+            "route": route,
             "escalation_required": result.escalation_required,
         }
         if result.customer_id:
@@ -87,16 +94,26 @@ def make_classifier(llm: BaseChatModel) -> Callable:
     return classifier_node
 
 
-def route_after_classify(state: TicketState) -> str:
-    """Pure routing decision based on the classifier output."""
-    category = state.get("category", "General")
-    confidence = state.get("confidence", 1.0)
-
+def _route_for_classification(
+    *,
+    category: str,
+    confidence: float,
+    escalation_required: bool,
+) -> str:
     # Anything explicitly flagged, a complaint, or a low-confidence read -> human.
-    if state.get("escalation_required") or category == "Complaint" or confidence < config.confidence_threshold:
+    if escalation_required or category == "Complaint" or confidence < config.confidence_threshold:
         return "escalation"
     if category == "Preference":
         return "memory"
     if category in {"Refund", "Membership", "Billing", "Account Access"}:
         return "tool_agent"
     return "resolver"
+
+
+def route_after_classify(state: TicketState) -> str:
+    """Pure routing decision based on the classifier output."""
+    return _route_for_classification(
+        category=state.get("category", "General"),
+        confidence=state.get("confidence", 1.0),
+        escalation_required=bool(state.get("escalation_required")),
+    )

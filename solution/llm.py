@@ -2,7 +2,6 @@ from functools import lru_cache
 
 from solution.config import settings
 
-from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI 
 
 config = settings()

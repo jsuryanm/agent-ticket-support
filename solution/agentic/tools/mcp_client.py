@@ -1,6 +1,7 @@
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
 import json 
+import logging
 import os
 import sys 
 from typing import Any
@@ -11,6 +12,7 @@ from langchain.tools import BaseTool
 from solution.config import settings
 
 config = settings()
+logger = logging.getLogger("udahub.tools.mcp_client")
 
 DB_TOOL_NAMES = [
     "lookup_customer",
@@ -49,9 +51,12 @@ def _connections() -> dict[str,dict]:
 
 async def load_tools() -> dict[str,BaseTool]:
     """Connect to both MCP servers and return their tools keyed by name"""
+    logger.info("Loading MCP tools from %d servers", len(_connections()))
     client = MultiServerMCPClient(_connections())
     tools = await client.get_tools()
-    return {t.name:t for t in tools}
+    loaded = {t.name:t for t in tools}
+    logger.info("Loaded MCP tools: %s", ", ".join(sorted(loaded)))
+    return loaded
 
 def coerce_json(result: Any) -> Any:
     """MCP text results may arrive as JSON strings; parse them when possible.

@@ -91,7 +91,8 @@ short-term memory across turns.
 
 ## Tests
 
-The suite runs fully offline (no API key, no network, no subprocesses) by
+The suite runs fully offline with fake graph dependencies (no Groq key, no
+network, no subprocesses) by
 injecting fake LLMs/tools/vector stores into the same factories the app uses:
 
 ```bash

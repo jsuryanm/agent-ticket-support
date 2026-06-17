@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Callable, Optional
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.tools import BaseTool
@@ -27,6 +27,7 @@ def build_orchestrator(
     *,
     llm: Optional[BaseChatModel] = None,
     checkpointer=None,
+    tool_agent_factory: Callable[[BaseChatModel, list[BaseTool]], Callable] = make_tool_agent,
 ) -> CompiledStateGraph:
     """Assemble and compile the orchestrator graph.
 
@@ -41,6 +42,11 @@ def build_orchestrator(
     memory_save = tools["memory_save"]
     memory_search = tools["memory_search"]
     db_tools = [tools[n] for n in DB_TOOL_NAMES if n in tools]
+    logger.info(
+        "Building orchestrator with %d total tools (%d DB tools)",
+        len(tools),
+        len(db_tools),
+    )
 
     graph = StateGraph(TicketState)
 
@@ -48,7 +54,7 @@ def build_orchestrator(
     graph.add_node("supervisor", make_supervisor_entry(memory_search))
     graph.add_node("classifier", make_classifier(llm))
     graph.add_node("resolver", make_resolver(llm, knowledge_search))
-    graph.add_node("tool_agent", make_tool_agent(llm, db_tools))
+    graph.add_node("tool_agent", tool_agent_factory(llm, db_tools))
     graph.add_node("escalation", make_escalation(llm))
     graph.add_node("memory", make_memory(llm, memory_save))
     graph.add_node("finalize", make_finalize(memory_save))
@@ -86,4 +92,5 @@ def build_orchestrator(
 async def get_orchestrator(*, checkpointer=None) -> CompiledStateGraph:
     """Convenience async builder: loads MCP tools then compiles the graph."""
     tools = await load_tools()
+    logger.info("Loaded %d MCP tools", len(tools))
     return build_orchestrator(tools, checkpointer=checkpointer)

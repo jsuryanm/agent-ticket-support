@@ -24,6 +24,7 @@ class ImportSmokeTests(unittest.TestCase):
             "solution.app",
             "solution.agentic.workflow",
             "solution.agentic.tools.mcp_client",
+            "solution.agentic.tools.local_tools",
             "solution.agentic.tools.rag_server",
             "solution.scripts.build_index",
         ]
@@ -43,7 +44,6 @@ class ImportSmokeTests(unittest.TestCase):
             self.assertEqual(str(config.PROJECT_ROOT), connection["cwd"])
             self.assertIn("env", connection)
             self.assertTrue(connection["env"].get("OPENAI_API_KEY"))
-            self.assertTrue(connection["env"].get("GROQ_API_KEY"))
 
     def test_reservation_tool_uses_plural_public_name(self):
         from solution.agentic.tools import db_ops
@@ -52,6 +52,16 @@ class ImportSmokeTests(unittest.TestCase):
         self.assertIn("list_reservations", DB_TOOL_NAMES)
         self.assertTrue(hasattr(db_ops, "list_reservations"))
         self.assertIs(db_ops.list_reservations, db_ops.list_reservation)
+
+    def test_local_tools_match_graph_expected_public_names(self):
+        from solution.agentic.tools.local_tools import load_local_tools
+        from solution.agentic.tools.mcp_client import DB_TOOL_NAMES, RAG_TOOL_NAMES
+
+        tools = load_local_tools()
+
+        for name in [*DB_TOOL_NAMES, *RAG_TOOL_NAMES]:
+            with self.subTest(name=name):
+                self.assertIn(name, tools)
 
 
 if __name__ == "__main__":

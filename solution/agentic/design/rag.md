@@ -17,13 +17,13 @@ requires ≥14). `scripts/02_core_db_setup.py` loads them into the core
 
 ## 2. Embeddings & store
 
-- **Embeddings:** OpenAI `text-embedding-3-small` (configurable via
-  `UDAHUB_EMBEDDING_MODEL`).
+- **Embeddings:** OpenAI embeddings `text-embedding-small-3` (configurable via
+  `OPENAI_EMBED_MODEL`).
 - **Store:** persistent **Chroma** under `data/index/`, isolated in
   `agentic/tools/vectorstore.py` — the only module that imports chromadb. Two
   collections:
-  - `cultpass_knowledge` — the KB (RAG).
-  - `udahub_memory` — long-term memory.
+  - `cultpass_knowledge_openai` — the KB (RAG).
+  - `udahub_memory_openai` — long-term memory.
 
 ## 3. Retrieval at query time
 
@@ -62,7 +62,7 @@ RAG tools:
 | `RAG_TOP_K` | 3 | KB articles retrieved per query |
 | `MEMORY_TOP_K` | 3 | Memory notes retrieved per query |
 | `CONFIDENCE_THRESHOLD` | 0.55 | Below this, escalate instead of resolve |
-| `EMBEDDING_MODEL` | text-embedding-3-small | Embedding model |
+| `OPENAI_EMBED_MODEL` | text-embedding-3-small | Embedding model |
 
 ## 6. Limitations & next steps
 

@@ -11,7 +11,8 @@ SOLUTION_ROOT: Path = Path(__file__).resolve().parent
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env",
                                       env_file_encoding="utf-8",
-                                      case_sensitive=False)
+                                      case_sensitive=False,
+                                      extra="ignore")
 
     PROJECT_ROOT: Path = PROJECT_ROOT
     SOLUTION_ROOT: Path = SOLUTION_ROOT
@@ -19,10 +20,6 @@ class Settings(BaseSettings):
     openai_api_key: str = Field(...,description="openai api key")
     openai_model: str = Field(default="gpt-4o-mini",description="openai llm model")
 
-    groq_api_key: str = Field(...,description='groq api key')
-    groq_model: str = Field(default="llama-3.3-70b-versatile",description="groq llm model")
-
-    hf_embed_model: str = Field(default='all-MiniLM-L6-v2',description="huggingface embeddings model")
     openai_embed_model: str = Field(default='text-embedding-3-small',description="openai embeddings model")
 
     llm_temp: float = Field(default=0.0)
@@ -30,8 +27,8 @@ class Settings(BaseSettings):
     confidence_threshold: float = Field(default=0.55,description="minimum classifier confidence for escalation")
     max_tool_steps: int = Field(default=4,description="Maximum cap on tool calling")
 
-    knowledge_base: str = "cultpass_knowledge"
-    memory_collection: str = "udahub_memory"
+    knowledge_base: str = "cultpass_knowledge_openai"
+    memory_collection: str = "udahub_memory_openai"
 
     RAG_TOP_K: int = 3
     MEMORY_TOP_K: int = 3
