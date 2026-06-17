@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from solution.config import settings
 from solution.state import TicketState
+from solution.logging_config import log_event
 
 config = settings()
 
@@ -80,6 +81,17 @@ def make_classifier(llm: BaseChatModel) -> Callable:
             escalation_required=result.escalation_required,
         )
         logger.info("Classifier routed to %s", route)
+        log_event(
+            logger,
+            "classified",
+            ticket_id=state.get("ticket_id"),
+            agent="classifier",
+            route=route,
+            category=result.category,
+            priority=result.priority,
+            confidence=result.confidence,
+            escalation_required=result.escalation_required,
+        )
         update = {
             "category": result.category,
             "priority": result.priority,

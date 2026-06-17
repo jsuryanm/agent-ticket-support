@@ -11,6 +11,7 @@ from langchain_core.tools import BaseTool
 
 from solution.config import settings
 from solution.state import TicketState
+from solution.logging_config import log_event
 
 config = settings()
 
@@ -81,6 +82,43 @@ def _tool_results(messages: list) -> list[dict[str, Any]]:
     return results
 
 
+def _tool_success(result: Any) -> bool:
+    if isinstance(result, dict):
+        if "success" in result:
+            return bool(result["success"])
+        if "error" in result:
+            return False
+        if "found" in result:
+            return bool(result["found"])
+    return True
+
+
+def log_tool_result_events(
+    state: TicketState,
+    tool_results: list[dict[str, Any]],
+    escalation_required: bool,
+) -> None:
+    for item in tool_results:
+        log_event(
+            logger,
+            "tool_result",
+            ticket_id=state.get("ticket_id"),
+            agent="tool_agent",
+            tool_name=item.get("tool"),
+            tool_success=_tool_success(item.get("result")),
+            escalation_required=escalation_required,
+        )
+    log_event(
+        logger,
+        "tool_agent_finished",
+        ticket_id=state.get("ticket_id"),
+        agent="tool_agent",
+        tool_count=len(tool_results),
+        escalation_required=escalation_required,
+        escalation_reason="tool_requires_human" if escalation_required else None,
+    )
+
+
 def make_tool_agent(llm: BaseChatModel, db_tools: list[BaseTool]) -> Callable:
     """Return an async tool-agent node backed by a prebuilt ReAct agent."""
     agent = create_agent(llm, db_tools, system_prompt=_SYSTEM)
@@ -96,6 +134,7 @@ def make_tool_agent(llm: BaseChatModel, db_tools: list[BaseTool]) -> Callable:
         )
         tool_results = _tool_results(out_msgs)
         logger.info("Tool agent finished (tools=%d, escalate=%s)", len(tool_results), escalate)
+        log_tool_result_events(state, tool_results, escalate)
         return {
             "resolution": resolution,
             "tool_results": tool_results,

@@ -8,6 +8,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
 from solution.state import TicketState
+from solution.logging_config import log_event
 
 logger = logging.getLogger("udahub.escalation")
 
@@ -44,8 +45,17 @@ def make_escalation(llm: BaseChatModel) -> Callable:
         result: Escalation = await structured.ainvoke(
             [SystemMessage(content=_SYSTEM), HumanMessage(content=context)]
         )
-        # Internal summary is for humans only — log it, don't show the customer.
+        # Internal summary is for humans only - log it, don't show the customer.
         logger.info("ESCALATION SUMMARY: %s", result.internal_summary)
+        log_event(
+            logger,
+            "escalated",
+            ticket_id=state.get("ticket_id"),
+            agent="escalation",
+            route=state.get("route"),
+            escalation_required=True,
+            escalation_reason=state.get("escalation_reason") or "human_handoff",
+        )
         return {
             "resolution": result.customer_message,
             "escalation_required": True,

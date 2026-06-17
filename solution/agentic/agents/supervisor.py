@@ -10,6 +10,7 @@ from solution.config import settings
 from solution.state import TicketState
 from solution.agentic.tools.mcp_client import coerce_json
 from solution.agentic.tools import db_ops
+from solution.logging_config import log_event
 
 config = settings()
 logger = logging.getLogger("udahub.supervisor")
@@ -63,6 +64,15 @@ def make_supervisor_entry(memory_search):
             memories = []
         updates["memory_context"] = memories
         logger.info("Supervisor loaded %d memories for %s", len(memories), key)
+        log_event(
+            logger,
+            "memory_search",
+            ticket_id=state.get("ticket_id") or updates.get("ticket_id"),
+            agent="supervisor",
+            tool_name="memory_search",
+            tool_success=True,
+            retrieval_count=len(memories),
+        )
         return updates
 
     return supervisor_entry
@@ -90,6 +100,16 @@ def make_finalize(memory_save: BaseTool) -> Callable:
             logger.warning("Memory write failed: %s", exc)
 
         # 3) The single customer-facing message for this turn.
+        log_event(
+            logger,
+            "finalized",
+            ticket_id=state.get("ticket_id", "adhoc"),
+            agent="finalize",
+            route=state.get("route"),
+            escalation_required=escalated,
+            final_status="escalated" if escalated else "resolved",
+            escalation_reason=state.get("escalation_reason") if escalated else None,
+        )
         return {"messages": [AIMessage(content=resolution)], "escalation_required": escalated}
 
     return finalize

@@ -23,4 +23,4 @@ class TicketState(TypedDict,total=False):
     # Outcome
     resolution: str             # the drafted customer-facing answer
     escalation_required: bool   # True -> hand off to a human
-
+    escalation_reason: str      # machine-readable reason when escalation is required

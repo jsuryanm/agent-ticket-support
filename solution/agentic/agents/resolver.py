@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from solution.config import settings
 from solution.state import TicketState
 from solution.agentic.tools.mcp_client import coerce_json
+from solution.logging_config import log_event
 
 config = settings()
 logger = logging.getLogger("udahub.resolver")
@@ -47,13 +48,34 @@ def make_resolver(llm: BaseChatModel, knowledge_search: BaseTool) -> Callable:
         raw = await knowledge_search.ainvoke({"query": question, "k": config.RAG_TOP_K})
         docs = coerce_json(raw) or []
         logger.info("Retrieved %d KB docs", len(docs))
+        log_event(
+            logger,
+            "knowledge_search",
+            ticket_id=state.get("ticket_id"),
+            agent="resolver",
+            tool_name="knowledge_search",
+            tool_success=True,
+            retrieval_count=len(docs),
+            escalation_required=not bool(docs),
+            escalation_reason="no_retrieved_docs" if not docs else None,
+        )
 
         if not docs:
             # No grounding material -> don't hallucinate, escalate.
+            log_event(
+                logger,
+                "resolver_decision",
+                ticket_id=state.get("ticket_id"),
+                agent="resolver",
+                retrieval_count=0,
+                escalation_required=True,
+                escalation_reason="no_retrieved_docs",
+            )
             return {
                 "retrieved_docs": [],
                 "resolution": "I couldn't find this in our help content, so I'm passing it to a human teammate.",
                 "escalation_required": True,
+                "escalation_reason": "no_retrieved_docs",
             }
 
         context = "\n\n".join(f"# {d.get('title','')}\n{d.get('content','')}" for d in docs)
@@ -66,10 +88,21 @@ def make_resolver(llm: BaseChatModel, knowledge_search: BaseTool) -> Callable:
                 HumanMessage(content=f"Context:\n{context}\n\nCustomer question: {question}"),
             ]
         )
+        escalation_reason = None if result.can_resolve else "resolver_low_confidence"
+        log_event(
+            logger,
+            "resolver_decision",
+            ticket_id=state.get("ticket_id"),
+            agent="resolver",
+            retrieval_count=len(docs),
+            escalation_required=not result.can_resolve,
+            escalation_reason=escalation_reason,
+        )
         return {
             "retrieved_docs": docs,
             "resolution": result.answer,
             "escalation_required": not result.can_resolve,
+            "escalation_reason": escalation_reason,
         }
 
     return resolver_node

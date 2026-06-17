@@ -1,11 +1,13 @@
 import asyncio
+import logging
 
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.tools import StructuredTool
 
 from solution.agentic.workflow import build_orchestrator
-from solution.agentic.agents.tool_agent import _needs_human, _tool_results
+from solution.agentic.agents.tool_agent import _needs_human, _tool_results, log_tool_result_events
+from solution.logging_config import STRUCTURED_LOG_ATTR
 
 
 class FakeStructured:
@@ -77,6 +79,8 @@ async def fake_memory_save(user_id: str, text: str):
 
 async def fake_knowledge_search(query: str, k: int = 3):
     """Return one KB article."""
+    if "moon concert" in query.lower():
+        return []
     return [
         {
             "title": "How to Reserve a Spot for an Event",
@@ -121,24 +125,43 @@ def fake_tool_agent_factory(_llm, db_tools):
         if state["category"] == "Refund":
             tool = next(tool for tool in db_tools if tool.name == "process_refund")
             result = await tool.ainvoke({"user_id": state["customer_id"], "reference": "demo"})
+            tool_results = [{"tool": tool.name, "result": result}]
+            log_tool_result_events(state, tool_results, True)
             return {
                 "resolution": "Refund approval requires a human support lead.",
-                "tool_results": [{"tool": tool.name, "result": result}],
+                "tool_results": tool_results,
                 "escalation_required": True,
             }
 
         tool = next(tool for tool in db_tools if tool.name == "get_subscription")
         result = await tool.ainvoke({"user_id": state["customer_id"]})
+        tool_results = [{"tool": tool.name, "result": result}]
+        log_tool_result_events(state, tool_results, False)
         return {
             "resolution": (
                 f"Your subscription is {result['status']} on the "
                 f"{result['tier']} tier with {result['monthly_quota']} monthly reservations."
             ),
-            "tool_results": [{"tool": tool.name, "result": result}],
+            "tool_results": tool_results,
             "escalation_required": False,
         }
 
     return tool_agent_node
+
+
+def structured_events(caplog):
+    return [
+        getattr(record, STRUCTURED_LOG_ATTR)
+        for record in caplog.records
+        if hasattr(record, STRUCTURED_LOG_ATTR)
+    ]
+
+
+def assert_event(events, expected):
+    assert any(
+        all(event.get(key) == value for key, value in expected.items())
+        for event in events
+    )
 
 
 class FakeToolMessage:
@@ -199,7 +222,9 @@ async def invoke_graph(fake_tools, message, ticket_id):
     )
 
 
-def test_compiled_graph_resolves_knowledge_base_ticket(fake_tools):
+def test_compiled_graph_resolves_knowledge_base_ticket(fake_tools, caplog):
+    caplog.set_level(logging.INFO, logger="udahub")
+
     state = asyncio.run(invoke_graph(fake_tools, "How do I reserve an event?", "it-kb"))
 
     assert state["category"] == "General"
@@ -208,8 +233,28 @@ def test_compiled_graph_resolves_knowledge_base_ticket(fake_tools):
     assert state["escalation_required"] is False
     assert "tap Reserve" in state["messages"][-1].content
 
+    events = structured_events(caplog)
+    assert_event(events, {
+        "ticket_id": "it-kb",
+        "agent": "resolver",
+        "event": "knowledge_search",
+        "tool_name": "knowledge_search",
+        "tool_success": True,
+        "retrieval_count": 1,
+        "escalation_required": False,
+    })
+    assert_event(events, {
+        "ticket_id": "it-kb",
+        "agent": "finalize",
+        "event": "finalized",
+        "escalation_required": False,
+        "final_status": "resolved",
+    })
 
-def test_compiled_graph_uses_tool_agent_for_membership_ticket(fake_tools):
+
+def test_compiled_graph_uses_tool_agent_for_membership_ticket(fake_tools, caplog):
+    caplog.set_level(logging.INFO, logger="udahub")
+
     state = asyncio.run(
         invoke_graph(
             fake_tools,
@@ -225,8 +270,27 @@ def test_compiled_graph_uses_tool_agent_for_membership_ticket(fake_tools):
     assert state["escalation_required"] is False
     assert "premium tier" in state["messages"][-1].content
 
+    events = structured_events(caplog)
+    assert_event(events, {
+        "ticket_id": "it-tool",
+        "agent": "tool_agent",
+        "event": "tool_result",
+        "tool_name": "get_subscription",
+        "tool_success": True,
+        "escalation_required": False,
+    })
+    assert_event(events, {
+        "ticket_id": "it-tool",
+        "agent": "finalize",
+        "event": "finalized",
+        "escalation_required": False,
+        "final_status": "resolved",
+    })
 
-def test_compiled_graph_escalates_refund_ticket(fake_tools):
+
+def test_compiled_graph_escalates_refund_ticket(fake_tools, caplog):
+    caplog.set_level(logging.INFO, logger="udahub")
+
     state = asyncio.run(
         invoke_graph(
             fake_tools,
@@ -239,3 +303,57 @@ def test_compiled_graph_escalates_refund_ticket(fake_tools):
     assert state["route"] == "tool_agent"
     assert state["escalation_required"] is True
     assert "human teammate" in state["messages"][-1].content
+
+    events = structured_events(caplog)
+    assert_event(events, {
+        "ticket_id": "it-escalation",
+        "agent": "tool_agent",
+        "event": "tool_result",
+        "tool_name": "process_refund",
+        "tool_success": True,
+        "escalation_required": True,
+    })
+    assert_event(events, {
+        "ticket_id": "it-escalation",
+        "agent": "finalize",
+        "event": "finalized",
+        "escalation_required": True,
+        "final_status": "escalated",
+    })
+
+
+def test_compiled_graph_escalates_unknown_resolver_ticket(fake_tools, caplog):
+    caplog.set_level(logging.INFO, logger="udahub")
+
+    state = asyncio.run(
+        invoke_graph(
+            fake_tools,
+            "Can CultPass arrange a private moon concert next week?",
+            "it-edge",
+        )
+    )
+
+    assert state["category"] == "General"
+    assert state["route"] == "resolver"
+    assert state["retrieved_docs"] == []
+    assert state["escalation_required"] is True
+    assert "human teammate" in state["messages"][-1].content
+
+    events = structured_events(caplog)
+    assert_event(events, {
+        "ticket_id": "it-edge",
+        "agent": "resolver",
+        "event": "knowledge_search",
+        "tool_name": "knowledge_search",
+        "tool_success": True,
+        "retrieval_count": 0,
+        "escalation_required": True,
+        "escalation_reason": "no_retrieved_docs",
+    })
+    assert_event(events, {
+        "ticket_id": "it-edge",
+        "agent": "finalize",
+        "event": "finalized",
+        "escalation_required": True,
+        "final_status": "escalated",
+    })
